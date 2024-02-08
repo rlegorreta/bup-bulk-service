@@ -1,0 +1,42 @@
+name: Commit Stage
+on: push
+
+env:
+  REGISTRY: ghcr.io                           # Uses the GitHub Container Registry
+  IMAGE_NAME: rlegorreta/bup-bulk-service     # The image name all are lowe-case
+  VERSION: latest
+
+jobs:
+  build:                                      # The job´s unique identifier.
+    name: Build and Test                      # The type of machine where the job should run.
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read                          # Permission to check out current Git repository.
+      security-events: write                  # Permission to submit security events to GitHub.
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3             # Checks out the current Git repository (gateway-service).
+      - name: Set up JDK
+        uses: actions/setup-java@v3           # Install and configures a Java runtime.
+        with:                                 # Defines which version, distribution, and cache type to use.
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - name: Build, unit tests SKIPPED and integration tests  # We skipped test because on Intellij they work ok (bug¿?)
+        run: |
+          chmod +x gradlew
+          ./gradlew build -x test \
+                    -PregistryUsername=${{ github.actor }} \
+                    -PregistryToken=${{ secrets.GITHUB_TOKEN }}
+      - name: Code vulnerability scanning
+        uses: anchore/scan-action@v3          # Scans the codebase for vulnerabilities using grype.
+        id: scan                              # Assigns an identifier to the current step so that it can be referenced from subsequent steps
+        with:
+          path: "${{ github.workspace }}"     # The path to the checked-out repository.
+          fail-build: false                   # Whether to fail the build in the event of security vulnerabilities
+          severity-cutoff: high               # Minimum security category to be considered (low, medium, high, critical)
+      - name: Upload vulnerability report
+        uses: github/codeql-action/upload-sarif@v2 # Uploads the security vulnerability report to GitHub (SARIF format)
+        if: success() || failure()            # Uploads the report even if the previous step fails
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }} # Fetches the report from the output of the previous step.

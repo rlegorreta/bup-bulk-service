@@ -1,0 +1,34 @@
+# This is a deployment for the Iam service backend  in Kubernetes
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bup-bulk-service
+  labels:                      # Set of labels attached to the Deployment
+    app: bup-bulk-service      # This Deployment is labeled with "app=bup-bulk-service"
+spec:
+  replicas: 1
+  selector:                    # Defines the labels used to select the Pods to be scaled
+    matchLabels:
+      app: bup-bulk-service
+  template:                   # The template for creating a Pod
+    metadata:
+      labels:                 # Labels attached to the Pod object. They should match the ones used as selectors.
+        app: bup-bulk-service
+    spec:
+      containers:                  # The list of containers in the Pod (one in this case)
+        - name: bup-bulk-service   # The name of the Pod
+          image: docker.io/ailegorreta/bup-bulk-service    # The image used to run the container. No tag is defined, so “latest” will be used implicitly.
+          imagePullPolicy: IfNotPresent # Instructs Kubernetes to pull the image from a container registry only if it’s not present locally yet
+          lifecycle:                # Makes Kubernetes wait 5 seconds before sending the SIGTERM signal to the Pod
+            preStop:
+              exec:
+                command: [ "sh", "-c", "sleep 5" ]
+          ports:
+            - containerPort: 8541   # The ports exposed by the container
+          env:
+            - name: BPL_JVM_THREAD_COUNT # A Paketo Buildpacks environment variable to configure the number of threads for memory calculation
+              value: "50"
+            - name: SPRING_CLOUD_CONFIG_URI
+              value: http://config-service
+            - name: AUTH_SERVICE_URI
+              value: http://auth-service

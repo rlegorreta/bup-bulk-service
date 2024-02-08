@@ -1,0 +1,205 @@
+server:
+  port: 8541
+  shutdown: graceful
+  netty:
+    connection-timeout: 2s
+    idle-timeout: 15s
+
+spring:
+  application:
+    name: bup-bulk-service
+  lifecycle:
+    timeout-per-shutdown-phase: 15s
+  main:
+    allow-bean-definition-overriding: false
+    web-application-type: reactive
+  config:
+    import: "optional:configserver:"   # Imports configuration data from a config server when available
+  cloud:
+    config:
+      uri: http://localhost:8071
+      request-connect-timeout: 5000   # Timeout on waiting to connect to the config server (ms)
+      request-read-timeout: 5000      # Timeout on waiting to read configuration data from the config server (ms)
+      fail-fast: true                 # In production, set to true. Makes a failure to connect to the config server fatal
+      retry:
+        max-attempts: 6
+        initial-interval: 1000        # Initial retry interval for backoff (ms)
+        max-interval: 2000            # Maximum retry interval for backoff (ms)
+        multiplier: 1.1               # Multiplier to compute the next interval
+    loadbalancer:
+      ribbon:
+        healthcheck:
+          path:
+            default: /
+        enabled: false
+        # ^ disables the default Netflix Ribbon-backed load balanced strategy in order to use new Spring Cloud Load Balancer
+    circuitbreaker:
+      resilience4j:
+        enabled: false
+    function:
+      definition: cPerson;cCompany;cSubsidiary;cArea;cTelephone;cAddress;cEmail;cPersCos;cCosCos;cPersPers
+    stream:
+      default:
+        producer:
+          useNativeEncoding: true
+        consumer:
+          useNativeDecoding: true
+      function:
+        definition: producer;cPerson;cCompany;cSubsidiary;cArea;cTelephone;cAddress;cEmail;cPersCos;cCosCos;cPersPers
+      kafka:
+        binder:
+          brokers: http://localhost:9092
+        bindings:
+          producer-out-0:
+            producer:
+              configuration:
+                key.serializer: org.apache.kafka.common.serialization.StringSerializer
+                value.serializer: com.ailegorreta.commons.event.EventDTOSerializer
+          cPerson-in-0:
+            consumer:
+              configuration:
+                key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+                value.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          cCompany-in-0:
+            consumer:
+              configuration:
+                key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+                value.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          cSubsidiary-in-0:
+            consumer:
+              configuration:
+                key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+                value.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          cArea-in-0:
+            consumer:
+              configuration:
+                key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+                value.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          cTelephone-in-0:
+            consumer:
+              configuration:
+                key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+                value.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          cAddress-in-0:
+            consumer:
+              configuration:
+                key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+                value.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          cEmail-in-0:
+            consumer:
+              configuration:
+                key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+                value.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          cPersCos-in-0:
+            consumer:
+              configuration:
+                key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+                value.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          cCosCos-in-0:
+            consumer:
+              configuration:
+                key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+                value.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          cPersPers-in-0:
+            consumer:
+              configuration:
+                key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+                value.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      bindings:
+        producer-out-0:
+          destination: audit
+        cPerson-in-0:      # not prefix 'audit' so we do not make any auditing for these messages
+          destination: bup_personas
+          group: group-bup-bulk
+        cCompany-in-0:
+          destination: bup_companias
+          group: group-bup-bulk
+        cSubsidiary-in-0:
+          destination: bup_subsidiarias
+          group: group-bup-bulk
+        cArea-in-0:
+          destination: bup_areas
+          group: group-bup-bulk
+        cTelephone-in-0:
+          destination: bup_telefonos
+          group: group-bup-bulk
+        cAddress-in-0:
+          destination: bup_direcciones
+          group: group-bup-bulk
+        cEmail-in-0:
+          destination: bup_emails
+          group: group-bup-bulk
+        cPersCos-in-0:
+          destination: bup_pers_cias
+          group: group-bup-bulk
+        cCosCos-in-0:
+          destination: bup_cias_cias
+          group: group-bup-bulk
+        cPersPers-in-0:
+          destination: bup_pers_pers
+          group: group-bup-bulk
+  profiles:
+    active: local
+  security:
+    oauth2:
+      client:
+        registration:
+          bup-bulk-service-client-credentials:
+            provider: spring
+            client-id: bup-bulk-service
+            client-secret: bup-bulk-service-secret
+            authorization-grant-type: client_credentials
+            scope: acme.facultad
+            client-name: bup-bulk-service-client-credentials
+        provider:
+          spring:
+            issuer-uri: http://auth-service:9000
+            # ^ for localNoDocker & localCmdLine an 'auth' must be declared in hosts file
+        rest:
+          client-id: bup-bulk-service-client-credentials
+      resourceserver:
+        jwt:
+          issuer-uri: http://auth-service:9000
+
+# Also needed by AuthServerUserLookupService
+security:
+  clientId: bup-bulk-service
+
+logging:
+  level:
+    com:
+      netflix: WARN
+      springframework:
+        web: WARN
+        core:
+          codec:
+            StringDecoder: TRACE
+      ailegorreta:
+        bupbulkservice: INFO
+        resourceserver: INFO
+  pattern:
+    level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]'
+
+# Back-end microservices
+microservice:
+  bup:
+    provider-uri: http://localhost:8072/ailegorreta/bup-service        # use the gateway (or 'bup' url is ok)
+
+info:
+  system: Marketplace AILegorreta
+
+# Monitoring with actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: env, health, headdump, info, loggers, mapping, prometheus
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
+
+bup-bulk-service:
+  testing: false

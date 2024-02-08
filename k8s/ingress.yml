@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1          # The API version for Ingress objects
+kind: Ingress
+metadata:
+  name: ailegorreta-ingress               # The name of the Ingress object
+spec:
+  ingressClassName: nginx                 # Configures the ingress controller responsible for managing this object
+  rules:
+    - http:                               # Ingress rules for HTTP traffic
+        paths:
+          - path: /                       # Default rule for all requests
+            pathType: Prefix
+            backend:
+              service:
+                name: bup-bulk-service    # The name of the service object where traffic should be forwarded
+                port:
+                  number: 80              # The port number for the service where traffic should be forwarded

@@ -1,0 +1,47 @@
+bup-bulk-service:
+  testing: true
+
+eureka:
+  client:
+    enabled: false
+    registerWithEureka: false
+  serviceUrl:
+    fetchRegistry: false
+
+logging:
+  level:
+    root: INFO
+    com:
+      acme:
+        bupbulkservice: DEBUG
+      ailegorreta: DEBUG
+
+spring:
+  cloud:
+    function:
+      definition: consumerSparkPersona;consumerSparkCompania
+    stream:
+      default:
+        producer:
+          useNativeEncoding: true
+        consumer:
+          useNativeDecoding: true
+      function:
+        definition: producerSparkPersona;producerSparkCompania
+      kafka:
+        bindings:
+          producerSparkPersona-out-0:
+            producer:
+              configuration:
+                key.serializer: org.apache.kafka.common.serialization.StringSerializer
+                value.serializer: com.ailegorreta.commons.event.EventDTOSerializer
+          producerSparkCompania-out-0:
+            producer:
+              configuration:
+                key.serializer: org.apache.kafka.common.serialization.StringSerializer
+                value.serializer: com.ailegorreta.commons.event.EventDTOSerializer
+      bindings:
+        producerSparkPersona-out-0:
+          destination: bup_personas
+        producerSparkCompania-out-0:
+          destination: bup_companias
